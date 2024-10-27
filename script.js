@@ -1,101 +1,88 @@
-document.getElementById('submit').addEventListener('click', calculatePrice);
+const calculateBtn = document.querySelector('.js-calculate-price');
 
-function calculatePrice() {
-    const basePrice = 100;
+const config = {
+    education: { undergraduate: 1.5, college: 1.2, highSchool: 1.05, middleSchool: 0.9 },
+    netWorth: { upperClass: 2, middleClass: 1.5, lowerClass: 1.2 },
+    caste: { brahmin: 100, kshatriya: 50, vaishya: 20, shudra: 10, varna: -50 },
+    skills: { musician: 10, cook: 20, easygoing: 15, singer: 10 },
+    age: { youngAdult: 1.5, midAdult: 1.2, olderAdult: 0.95 },
+    reputation: { gossipParents: 0.85, gossipCharacter: 0.9, generalGossip: -20 }
+};
 
+calculateBtn.addEventListener('click', () => {
+    const basePrice = document.querySelector('.starting-price').value;
+    const personName = document.querySelector('.name').value;
+    const education = getSelectedValue('#education');
+    const netWorth = getSelectedValue('#networth');
+    const caste = getSelectedValue('#caste');
+    const age = getSelectedValue('input[name="age"]:checked');
+    const reputation = getSelectedValues('input[name="reputation"]:checked');
+    const skills = getCheckedSkills();
 
-    let education = document.getElementById('education').value;
-    let educationCoeff = 1;
-    switch (education) {
-        case 'bachelor':
-            educationCoeff = 1.5;
-            break;
-        case 'college':
-            educationCoeff = 1.2;
-            break;
-        case 'high_school':
-            educationCoeff = 1.05;
-            break;
-        case 'middle_school':
-            educationCoeff = 0.9;
-            break;
-    }
-
-    let networth = document.getElementById('networth').value;
-    let networthCoeff = 1;
-    switch (networth) {
-        case 'upper_class':
-            networthCoeff = 2;
-            break;
-        case 'middle_class':
-            networthCoeff = 1.5;
-            break;
-        case 'lower_class':
-            networthCoeff = 1.2;
-            break;
+    if (isNaN(basePrice) || !personName) {
+        alert('Please enter both name and starting price');
+        return;
     }
 
-   
-    let caste = document.getElementById('Caste').value;
-    let casteBonus = 0;
-    switch (caste) {
-        case 'upper_class':
-            casteBonus = 100;
-            break;
-        case 'middle_class':
-            casteBonus = 50;
-            break;
-        case 'Vaishya':
-            casteBonus = 20;
-            break;
-        case 'Shudra':
-            casteBonus = 10;
-            break;
-        case 'Varna':
-            casteBonus = -50;
-            break;
-    }
+    const finalAmount = calculatePrice(basePrice, education, netWorth, caste, age, reputation, skills);
+    displayResult(personName, finalAmount);
+});
 
-   
-    let skillsBonus = 0;
-    if (document.getElementById('playing_instrument').checked) {
-        skillsBonus += 10;
+function getSelectedValue(selector) {
+    const element = document.querySelector(selector);
+    if (element) {
+        return element.value;
+    } else {
+        return '';
     }
-    if (document.getElementById('good_cook').checked) {
-        skillsBonus += 20;
-    }
-    if (document.getElementById('Easygoing_character').checked) {
-        skillsBonus += 15;
-    }
-    if (document.getElementById('sings_well').checked) {
-        skillsBonus += 10;
-    }
+}
 
-   
-    let ageCoeff = 1;
-    if (document.getElementById('youngest').checked) {
-        ageCoeff = 1.5;
-    } else if (document.getElementById('Between').checked) {
-        ageCoeff = 1.2;
-    } else if (document.getElementById('oldest').checked) {
-        ageCoeff = 0.95;
-    }
+function getSelectedValues(selector) {
+    const elements = document.querySelectorAll(selector);
+    const values = [];
+    elements.forEach(el => values.push(el.value));
+    return values;
+}
 
-    
-    let reputationCoeff = 1;
-    if (document.getElementById('gossip_parents').checked) {
-        reputationCoeff *= 0.85;
-    }
-    if (document.getElementById('gossip_character').checked) {
-        reputationCoeff *= 0.9;
-    }
-    if (document.getElementById('general_gossips').checked) {
-        basePrice -= 20;
-    }
+function getCheckedSkills() {
+    const skillElements = document.querySelectorAll('.skills input[type="checkbox"]:checked');
+    const skills = [];
+    skillElements.forEach(skill => skills.push(skill.id));
+    return skills;
+}
 
-    
-    let finalPrice = basePrice * educationCoeff * networthCoeff * ageCoeff * reputationCoeff + casteBonus + skillsBonus;
+function calculatePrice(basePrice, education, netWorth, caste, age, reputation, skills) {
+    let multiplier = 1;
+    let bonus = 0;
 
-    document.querySelector('.js-final-price').innerHTML = `Final price: $${finalPrice}`;
-    
+    if (config.education[education]) multiplier *= config.education[education];
+    if (config.netWorth[netWorth]) multiplier *= config.netWorth[netWorth];
+    if (config.age[age]) multiplier *= config.age[age];
+
+    reputation.forEach(rep => {
+        if (config.reputation[rep] !== undefined) {
+            if (rep === 'generalGossip') {
+                bonus += config.reputation[rep];
+            } else {
+                multiplier *= config.reputation[rep];
+            }
+        }
+    });
+
+    skills.forEach(skill => {
+        if (config.skills[skill]) bonus += config.skills[skill];
+    });
+
+    if (config.caste[caste]) bonus += config.caste[caste];
+
+    return (basePrice * multiplier) + bonus;
+}
+
+function displayResult(name, finalAmount) {
+    const output = document.querySelector('.output');
+    output.innerHTML = `
+        <div>Total Price for ${name}: $${finalAmount.toFixed(2)}</div>
+        <div>Love Letter for ${name}: ${document.querySelector('.love-letter').value}</div>
+    `;
+    output.style.display = 'block';
 }
